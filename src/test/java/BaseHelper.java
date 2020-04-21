@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.scene.input.KeyCodeCombinationBuilder;
 import okhttp3.*;
-import okhttp3.logging.HttpLoggingInterceptor;
-import org.json.JSONObject;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +21,8 @@ import static org.testng.Assert.assertNotNull;
 
 public class BaseHelper {
     private OkHttpClient client = new OkHttpClient();
+
+    org.apache.log4j.Logger logger = Logger.getLogger(BaseHelper.class);
 
     String BASE_URL = "https://api.todoist.com/rest/v1";
 
@@ -53,16 +54,27 @@ public class BaseHelper {
     }
 
     public Response createCommonPostRequest() {
-        Call call = client.newCall(baseRequest(getCommonBody("common.json")));
-        return executeCall(call);
+        Request request = baseRequest(getCommonBody("common.json"));
+        Call call = client.newCall(request);
+        logger.info(String.format("Sending request %s on %s",
+                request.url(), request.headers()));
+        return getResponse(executeCall(call));
+    }
+
+    private Response getResponse(Response executeCall) {
+        logger.info(String.format("Received response for %s with code %s and %s",
+                executeCall.request().url(), executeCall.code(), executeCall.headers()));
+        return executeCall;
     }
 
     public void verifyCommonPostRequest(Response commonPostRequest) {
-        assertThat(commonPostRequest.code(), equalTo(200));
         try {
-            TaskBodyPojo entity = mapper.readValue(commonPostRequest.body().string(), TaskBodyPojo.class);
+            String body = commonPostRequest.body().string();
+            assertThat(commonPostRequest.code(), equalTo(200));
+            TaskBodyPojo entity = mapper.readValue(body, TaskBodyPojo.class);
             assertThat(entity,is(notNullValue()));
             assertThat(getDate(((LinkedHashMap) entity.getDue()).get("datetime").toString()), is(notNullValue()));
+            logger.info(String.format("Received body %s", body));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -82,13 +94,19 @@ public class BaseHelper {
     }
 
     public Response createRequestWithEmptyContent() {
-        Call call = client.newCall(baseRequest(getCommonBody("emptycontent.json")));
-        return executeCall(call);
+        Request request = baseRequest(getCommonBody("emptycontent.json"));
+        Call call = client.newCall(request);
+        logger.info(String.format("Sending request %s on %s",
+                request.url(), request.headers()));
+        return getResponse(executeCall(call));
     }
 
     public Response createRequestWithEmptyBody() {
-        Call call = client.newCall(baseRequest(getCommonBody("emptybody.json")));
-        return executeCall(call);
+        Request request = baseRequest(getCommonBody("emptybody.json"));
+        Call call = client.newCall(request);
+        logger.info(String.format("Sending request %s on %s",
+                request.url(), request.headers()));
+        return getResponse(executeCall(call));
     }
 
 
@@ -103,8 +121,11 @@ public class BaseHelper {
     }
 
     public Response createRequestWithBigPriority() {
-        Call call = client.newCall(baseRequest(getCommonBody("bigpriority.json")));
-        return executeCall(call);
+        Request request = baseRequest(getCommonBody("bigpriority.json"));
+        Call call = client.newCall(request);
+        logger.info(String.format("Sending request %s on %s",
+                request.url(), request.headers()));
+        return getResponse(executeCall(call));
     }
 
     public void verifyHumanTimeToDate(Response commonPostRequest) {
